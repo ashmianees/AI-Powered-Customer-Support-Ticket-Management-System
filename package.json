@@ -1,0 +1,16 @@
+{
+  "name": "ai-customer-support-ticket-system",
+  "version": "1.0.0",
+  "description": "AI-Powered Customer Support Ticket Management System (MERN Stack)",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "build": "npm run build --prefix client"
+  },
+  "keywords": ["mern", "gemini", "ai-support", "ticket-management"],
+  "author": "",
+  "license": "ISC"
+}
