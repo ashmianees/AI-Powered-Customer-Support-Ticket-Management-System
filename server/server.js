@@ -36,7 +36,13 @@ app.use('/api/chat', chatRoutes);
 // Global Error Handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`[Server] Running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
-});
+// Export app for Vercel serverless environment
+export default app;
+
+// Only listen locally if not running on Vercel production
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`[Server] Running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+  });
+}
