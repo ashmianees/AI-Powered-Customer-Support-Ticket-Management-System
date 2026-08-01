@@ -17,9 +17,24 @@ const app = express();
 connectDB();
 
 // Middleware
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://ai-powered-customer-support-ticket-management-system-gemfrz3fx.vercel.app',
+  'https://omnisupport-ai.vercel.app' // Update with your actual frontend domain
+];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
-  credentials: true
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
@@ -35,6 +50,14 @@ app.use('/api/chat', chatRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
+
+// Local development server
+const PORT = process.env.PORT || 5000;
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`✓ Server running on http://localhost:${PORT}`);
+  });
+}
 
 // Export app for Vercel serverless environment
 export default app;
