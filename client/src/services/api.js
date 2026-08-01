@@ -1,13 +1,11 @@
 import axios from 'axios';
 
-// Use environment variable for API URL, fallback to relative path
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-
 const API = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: 'https://ai-powered-customer-support-ticket-six.vercel.app/api',
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true
 });
 
 // Attach Authorization header if token exists
