@@ -39,6 +39,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Explicitly handle all preflight requests
+app.options('*', cors());
+
 app.use(express.json());
 
 // Base Route & Health Check

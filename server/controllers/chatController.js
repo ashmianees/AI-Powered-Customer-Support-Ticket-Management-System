@@ -1,116 +1,69 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import Chat from '../models/Chat.js';
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { connectDB } from './config/db.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
-const getModelCandidates = () => {
-  const configuredModels = (process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite')
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
+import authRoutes from './routes/authRoutes.js';
+import ticketRoutes from './routes/ticketRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 
-  const fallbackModels = (process.env.GEMINI_MODEL_FALLBACKS || 'gemini-2.0-flash,gemini-1.5-flash')
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
+dotenv.config();
 
-  return [...new Set([...configuredModels, ...fallbackModels])];
-};
+const app = express();
 
-const getAIResponse = async (userMessage) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return "Thank you for reaching out to AI Customer Support. (Note: GEMINI_API_KEY is not set in server/.env). How can I assist you with your ticket today?";
-  }
+// Connect to Database
+connectDB();
 
-  const candidateModels = getModelCandidates();
-  const genAI = new GoogleGenerativeAI(apiKey);
-  let lastError = null;
+// Middleware
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://ai-powered-customer-support-ticket.vercel.app',
+  'https://ai-powered-customer-support-ticket-six.vercel.app',
+  'https://ai-powered-customer-support-ticket-management-system-gemfrz3fx.vercel.app',
+  'https://omnisupport-ai.vercel.app'
+];
 
-  for (const modelName of candidateModels) {
-    try {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction: "You are an intelligent, empathetic, and highly helpful AI Customer Support Assistant. Your goal is to assist customers with troubleshooting, account queries, billing issues, and general support. Provide concise, step-by-step guidance. If an issue requires manual staff intervention, advise the user to submit a support ticket in the portal."
-      });
-
-      const result = await model.generateContent(userMessage);
-      const response = await result.response;
-      const text = response.text();
-      if (text) return text;
-    } catch (error) {
-      const errorMessage = error?.message || 'Unknown Gemini API error';
-      console.warn(`[Gemini AI] Model ${modelName} failed: ${errorMessage}. Trying next model...`);
-      lastError = error;
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
     }
-  }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-  const fallbackMessage = 'The AI assistant is currently unavailable due to Gemini service limits or an unsupported model. Please try again shortly or submit a support ticket.';
-  console.error('[Gemini AI Error]:', lastError?.message || 'No model succeeded');
-  return `AI Assistant encountered an issue processing your request. ${fallbackMessage}`;
-};
+// Explicitly handle all preflight requests
+app.options('*', cors());
 
-// @desc    Send message to Gemini AI and save to DB
-// @route   POST /api/chat
-export const handleChatMessage = async (req, res, next) => {
-  try {
-    const { userMessage } = req.body;
-    if (!userMessage || !userMessage.trim()) {
-      res.status(400);
-      throw new Error('Message content cannot be empty');
-    }
+app.use(express.json());
 
-    const userId = req.user._id;
+// Base Route & Health Check
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'OK', message: 'Support Ticket API is running cleanly' });
+});
 
-    // Get previous chat history for context
-    const previousChats = await Chat.find({ userId })
-      .sort({ createdAt: -1 })
-      .limit(10);
+app.use('/api/auth', authRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/chat', chatRoutes);
 
-    const historyContext = previousChats.reverse().map(c => `User: ${c.userMessage}\nAI: ${c.aiResponse}`).join('\n');
-    const fullPrompt = historyContext ? `${historyContext}\nUser: ${userMessage}` : userMessage;
+// Global Error Handler
+app.use(errorHandler);
 
-    const aiResponseText = await getAIResponse(fullPrompt);
+// Local development server
+const PORT = process.env.PORT || 5000;
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`✓ Server running on http://localhost:${PORT}`);
+  });
+}
 
-    // Save to Database
-    const chatDoc = await Chat.create({
-      userId,
-      userMessage: userMessage.trim(),
-      aiResponse: aiResponseText
-    });
-
-    res.status(200).json({
-      success: true,
-      chat: chatDoc
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Get Chat History
-// @route   GET /api/chat/history
-export const getChatHistory = async (req, res, next) => {
-  try {
-    const history = await Chat.find({ userId: req.user._id }).sort({ createdAt: 1 });
-    res.status(200).json({
-      success: true,
-      count: history.length,
-      history
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Clear Chat History
-// @route   DELETE /api/chat/history
-export const clearChatHistory = async (req, res, next) => {
-  try {
-    await Chat.updateMany({ userId: req.user._id }, { deletedAt: new Date() });
-    res.status(200).json({
-      success: true,
-      message: 'Chat history cleared successfully'
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+// Export app for Vercel serverless environment
+export default app;
