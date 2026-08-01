@@ -20,8 +20,10 @@ connectDB();
 const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'https://ai-powered-customer-support-ticket.vercel.app',
+  'https://ai-powered-customer-support-ticket-six.vercel.app',
   'https://ai-powered-customer-support-ticket-management-system-gemfrz3fx.vercel.app',
-  'https://omnisupport-ai.vercel.app' // Update with your actual frontend domain
+  'https://omnisupport-ai.vercel.app'
 ];
 
 app.use(cors({
@@ -29,13 +31,14 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('CORS not allowed'));
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 
 // Base Route & Health Check
