@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-import axios from 'axios';
 
 const API = axios.create({
   baseURL: 'https://ai-powered-customer-support-ticket-six.vercel.app/api',
