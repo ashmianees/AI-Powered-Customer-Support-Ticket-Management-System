@@ -8,7 +8,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://ai-powered-customer-support-ticket-six.vercel.app',
+        target: 'https://ai-powered-customer-support-ticket-coral.vercel.app',
         changeOrigin: true
       }
     }
